@@ -7,6 +7,7 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -36,18 +37,7 @@ void draw_keypoints(cv::Mat &resized_image, float *output)
 {
     int square_dim = resized_image.rows;
 
-    for (int i = 0; i < num_keypoints; ++i) {
-        float y = output[i * 3];
-        float x = output[i * 3 + 1];
-        float conf = output[i * 3 + 2];
-
-        if (conf > confidence_threshold) {
-            int img_x = static_cast<int>(x * square_dim);
-            int img_y = static_cast<int>(y * square_dim);
-            cv::circle(resized_image, cv::Point(img_x, img_y), 2, cv::Scalar(255, 200, 200), 1);
-        }
-    }
-
+    int offset = 75;
     // draw skeleton
     for (const auto &connection : connections) {
         int index1 = connection.first;
@@ -60,11 +50,11 @@ void draw_keypoints(cv::Mat &resized_image, float *output)
         float conf2 = output[index2 * 3 + 2];
 
         if (conf1 > confidence_threshold && conf2 > confidence_threshold) {
-            int img_x1 = static_cast<int>(x1 * square_dim);
+            int img_x1 = offset+static_cast<int>(x1 * square_dim);
             int img_y1 = static_cast<int>(y1 * square_dim);
-            int img_x2 = static_cast<int>(x2 * square_dim);
+            int img_x2 = offset+static_cast<int>(x2 * square_dim);
             int img_y2 = static_cast<int>(y2 * square_dim);
-            cv::line(resized_image, cv::Point(img_x1, img_y1), cv::Point(img_x2, img_y2), cv::Scalar(200, 200, 200), 1);
+            cv::line(resized_image, cv::Point(img_x1, img_y1), cv::Point(img_x2, img_y2), cv::Scalar(0, 255, 0), 3);
         }
     }
 }
@@ -80,7 +70,17 @@ int main(int argc, char *argv[]) {
     // modern laptops while achieving good performance.
     std::string model_file = "assets/lite-model_movenet_singlepose_lightning_tflite_float16_4.tflite";
     // Video by Olia Danilevich from https://www.pexels.com/
-    std::string video_file = "assets/dancing.mp4";
+    //std::string video_file = "assets/dancing.mp4";
+     //Open the default video camera
+    cv::VideoCapture video(0);
+
+    // if not success, exit program
+    if (video.isOpened() == false)  {
+        std::cout << "Cannot open the video camera\n";
+        std::cin.get(); //wait for any key press
+        return -1;
+    } 
+    
     std::string image_file = "";
     bool show_windows = true;
 
@@ -102,9 +102,9 @@ int main(int argc, char *argv[]) {
         model_file = arguments["--model"];
     }
 
-    if (arguments.count("--video")) {
+    /*if (arguments.count("--video")) {
         video_file = arguments["--video"];
-    }
+    }*/
 
     if (arguments.count("--image")) {
         image_file = arguments["--image"];
@@ -153,13 +153,13 @@ int main(int argc, char *argv[]) {
                                                                     << dim3 << "]" << std::endl;
 
 
-    cv::VideoCapture video(video_file);
+    //cv::VideoCapture video(video_file);
 
     cv::Mat frame;
 
     if (image_file.empty()) {
         if (!video.isOpened()) {
-            std::cout << "Can't open the video: " << video_file << std::endl;
+            std::cout << "Can't open the video: " << std::endl;
             return -1;
         }
     }
@@ -206,10 +206,10 @@ int main(int argc, char *argv[]) {
 
         float *results = interpreter->typed_output_tensor<float>(0);
 
-        draw_keypoints(resized_image, results);
+        draw_keypoints(frame, results);
 
         if (show_windows) {
-            imshow("Output", resized_image);
+            imshow("Output", frame);
         }
         else {
             // just run one frame when not showing output

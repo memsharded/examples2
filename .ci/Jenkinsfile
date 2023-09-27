@@ -84,6 +84,7 @@ def runExamples(Map ctxt) {
                 }
                 echo "Running examples with CONAN_HOME: ${env.CONAN_HOME}"
                 for (example in ctxt.examples) {
+                    ctxt.shFunction('conan remove "*" -c')
                     runExample(ctxt, example)
                 }
             }
@@ -132,6 +133,7 @@ node('Linux') {
                     linux: {
                         conanBranchesInstalls.each { branch ->
                             stage("${branch.name}: Run Linux examples") {
+                                docker.image(LINUX_CONTAINER).pull()
                                 docker.image(LINUX_CONTAINER).inside("--entrypoint=") {
                                     def sourcedir = "/home/conan/"
                                     def pyenvdir = "${sourcedir}.pyenv"
@@ -139,7 +141,7 @@ node('Linux') {
                                     def command = "export PYENV_ROOT=${pyenvdir} && " \
                                                 + "export PATH=\"${pyenvdir}/versions/\${pythonVersion}/bin:${pyenvdir}/bin:\$PATH\" && " \
                                                 + "pyenv global ${pythonVersion} && " \
-                                                + "sudo /home/conan/select_cmake.sh 3.23.5"
+                                                + "sudo /home/conan/select_cmake.sh 3.23.5 && sudo /home/conan/select_gcc.sh 11"
                                     sh(script: command)
                                     runExamples([python_host: 'python3',
                                                 shFunction: { data -> sh(data) },

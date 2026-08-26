@@ -32,9 +32,14 @@ jobs:
           sudo apt-get install -y gcc-12-arm-linux-gnueabihf g++-12-arm-linux-gnueabihf
 
       - name: Set up Python
+        id: setup_python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          update-environment: false
+
+      - name: Prepend Python to System PATH
+        run: echo "$(dirname ${{ steps.setup_python.outputs.python-path }})" >> $GITHUB_PATH
 
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v1.14
@@ -49,6 +54,9 @@ jobs:
       - name: Install autotools (macOS)
         if: runner.os == 'macOS'
         run: brew install automake autoconf
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.1
 
       - name: Install Conan
         shell: bash
@@ -67,4 +75,5 @@ jobs:
         shell: bash
         env:
           PYTHONPATH: ${{ github.workspace }}
+          COSIGN_PASSWORD: ""
         run: python -u "${{ github.workspace }}/.github/run_ci_tests.py"
